@@ -1,13 +1,24 @@
 <?php
 
-require_once("../config/conexao.php");
+require_once(__DIR__ . "/security.php");
+require_auth();
+require_once(__DIR__ . "/conexao.php");
 
-$id = intval($_GET['id']);
+$id = intval($_GET['id'] ?? 0);
+if ($id <= 0) {
+    header("Location: produtos.php");
+    exit;
+}
 
-$sql = "SELECT * FROM produtos WHERE id = $id";
-$result = $conn->query($sql);
-
+$stmt = $conn->prepare("SELECT * FROM produtos WHERE id = ?");
+$stmt->bind_param('i', $id);
+$stmt->execute();
+$result = $stmt->get_result();
 $produto = $result->fetch_assoc();
+if (!$produto) {
+    header("Location: produtos.php");
+    exit;
+}
 
 ?>
 

@@ -1,12 +1,17 @@
 <?php
-include "conexao.php";
+require_once(__DIR__ . "/conexao.php");
 include "header.php";
-$id = $_GET['id'];
+$id = intval($_GET['id'] ?? 0);
 
-$sql = "SELECT * FROM produtos WHERE id = $id";
-$result = $conn->query($sql);
-
+$stmt = $conn->prepare("SELECT * FROM produtos WHERE id = ? AND ativo = 1");
+$stmt->bind_param('i', $id);
+$stmt->execute();
+$result = $stmt->get_result();
 $produto = $result->fetch_assoc();
+if (!$produto) {
+    header("Location: index.php");
+    exit;
+}
 ?>
 
 <!DOCTYPE html>

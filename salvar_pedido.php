@@ -1,46 +1,44 @@
 <?php
+header("Content-Type: application/json; charset=utf-8");
+require_once(__DIR__ . "/conexao.php");
 
-header("Content-Type: application/json");
+$raw = file_get_contents("php://input");
+$dados = json_decode($raw, true);
 
-$conn = new mysqli("localhost","root","","neoriginal");
-
-if ($conn->connect_error) {
-    echo json_encode(["erro"=>"erro conexao"]);
+if (!$dados || !isset($dados["itens"], $dados["total"])) {
+    http_response_code(400);
+    echo json_encode(["erro" => "Dados invalidos"]);
     exit;
 }
 
-$raw = file_get_contents("php://input");
-$dados = json_decode($raw,true);
+$itens = (array)$dados["itens"];
+$total = floatval($dados["total"]);
 
-$itens = $dados["itens"];
-$total = $dados["total"];
-
-$conn->query("INSERT INTO pedidos (total) VALUES ('$total')");
+$stmt = $conn->prepare("INSERT INTO pedidos (total) VALUES (?)");
+$stmt->bind_param('d', $total);
+$stmt->execute();
 $pedido_id = $conn->insert_id;
 
-$mensagem = "Pedido #".$pedido_id."\n\n";
+$stmtItem = $conn->prepare("INSERT INTO pedidos_itens (pedido_id, produto_nome, quantidade, preco) VALUES (?, ?, ?, ?)");
+
+$mensagem = "Pedido #" . $pedido_id . "\n\n";
 
 foreach($itens as $item){
-
-    $nome = $item["nome"];
-    $qtd = $item["qtd"];
-    $preco = $item["preco"];
-
+    $nome = (string)($item["nome"] ?? '');
+    $qtd = intval($item["qtd"] ?? 1);
+    $preco = floatval($item["preco"] ?? 0.0);
     $subtotal = $preco * $qtd;
 
-    $conn->query("
-        INSERT INTO pedidos_itens
-        (pedido_id,produto_nome,quantidade,preco)
-        VALUES
-        ('$pedido_id','$nome','$qtd','$preco')
-    ");
+    $stmtItem->bind_param('isid', $pedido_id, $nome, $qtd, $preco);
+    $stmtItem->execute();
 
-    $mensagem .= $nome." - Qtd: ".$qtd." - R$ ".number_format($subtotal,2,",",".")."\n";
+    $mensagem .= $nome . " - Qtd: " . $qtd . " - R$ " . number_format($subtotal, 2, ",", ".") . "\n";
 }
 
-$mensagem .= "\nTotal: R$ ".number_format($total,2,",",".");
+$mensagem .= "\nTotal: R$ " . number_format($total, 2, ",", ".");
 
 echo json_encode([
-    "pedido_id"=>$pedido_id,
-    "mensagem"=>$mensagem
+    "pedido_id" => $pedido_id,
+    "mensagem" => $mensagem
 ]);
+exit;

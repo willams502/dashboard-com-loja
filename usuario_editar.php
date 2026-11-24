@@ -1,17 +1,23 @@
 <?php
 
-session_start();
-require_once("../config/conexao.php");
+require_once(__DIR__ . "/security.php");
+require_auth();
+require_once(__DIR__ . "/conexao.php");
 
-if (!isset($_SESSION['usuario_id'])) {
-    header("Location: login.php");
+$id = intval($_GET['id'] ?? 0);
+if ($id <= 0) {
+    header("Location: usuarios.php");
     exit;
 }
 
-$id = $_GET['id'];
-
-$sql = "SELECT * FROM usuarios WHERE id='$id'";
-$usuario = $conn->query($sql)->fetch_assoc();
+$stmt = $conn->prepare("SELECT * FROM usuarios WHERE id = ?");
+$stmt->bind_param('i', $id);
+$stmt->execute();
+$usuario = $stmt->get_result()->fetch_assoc();
+if (!$usuario) {
+    header("Location: usuarios.php");
+    exit;
+}
 
 ?>
 

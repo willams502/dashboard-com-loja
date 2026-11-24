@@ -1,5 +1,7 @@
 <?php
-require_once("../config/conexao.php");
+require_once(__DIR__ . "/security.php");
+require_auth();
+require_once(__DIR__ . "/conexao.php");
 
 $sql = "SELECT * FROM produtos ORDER BY id DESC";
 $result = $conn->query($sql);

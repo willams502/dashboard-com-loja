@@ -23,12 +23,12 @@ $marca = $conn->real_escape_string($_GET['marca']);
 $where .= " AND marca = '$marca'";
 }
 
-if(isset($_GET['preco_min']) && $_GET['preco_min'] != ""){
-$where .= " AND preco >= ".$_GET['preco_min'];
+if(isset($_GET['preco_min']) && is_numeric($_GET['preco_min'])){
+$where .= " AND preco >= " . floatval($_GET['preco_min']);
 }
 
-if(isset($_GET['preco_max']) && $_GET['preco_max'] != ""){
-$where .= " AND preco <= ".$_GET['preco_max'];
+if(isset($_GET['preco_max']) && is_numeric($_GET['preco_max'])){
+$where .= " AND preco <= " . floatval($_GET['preco_max']);
 }
 
 $order = "";

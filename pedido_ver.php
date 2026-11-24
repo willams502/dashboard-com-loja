@@ -1,29 +1,30 @@
 <?php
 
-session_start();
-require_once("../config/conexao.php");
+require_once(__DIR__ . "/security.php");
+require_auth();
+require_once(__DIR__ . "/conexao.php");
 
-if (!isset($_SESSION['usuario_id'])) {
-    header("Location: login.php");
+$id = intval($_GET['id'] ?? 0);
+if ($id <= 0) {
+    header("Location: pedidos.php");
     exit;
 }
 
-$id = $_GET['id'];
-
 /* BUSCAR PEDIDO */
-
-$sql = "SELECT * FROM pedidos WHERE id='$id'";
-$pedido = $conn->query($sql)->fetch_assoc();
+$stmt = $conn->prepare("SELECT * FROM pedidos WHERE id = ?");
+$stmt->bind_param('i', $id);
+$stmt->execute();
+$pedido = $stmt->get_result()->fetch_assoc();
+if (!$pedido) {
+    header("Location: pedidos.php");
+    exit;
+}
 
 /* BUSCAR ITENS */
-
-$sql = "
-SELECT *
-FROM pedidos_itens
-WHERE pedido_id='$id'
-";
-
-$itens = $conn->query($sql);
+$stmtItens = $conn->prepare("SELECT * FROM pedidos_itens WHERE pedido_id = ?");
+$stmtItens->bind_param('i', $id);
+$stmtItens->execute();
+$itens = $stmtItens->get_result();
 
 ?>
 

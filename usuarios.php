@@ -1,12 +1,8 @@
 <?php
 
-session_start();
-require_once("../config/conexao.php");
-
-if (!isset($_SESSION['usuario_id'])) {
-    header("Location: login.php");
-    exit;
-}
+require_once(__DIR__ . "/security.php");
+require_auth();
+require_once(__DIR__ . "/conexao.php");
 
 $sql = "SELECT * FROM usuarios ORDER BY id DESC";
 $usuarios = $conn->query($sql);

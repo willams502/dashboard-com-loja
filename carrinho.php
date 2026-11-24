@@ -1,6 +1,6 @@
 <?php
 session_start();
-include "conexao.php";
+require_once(__DIR__ . "/conexao.php");
 
 if(!isset($_POST['id'])){
     header("Location: index.php");
@@ -8,9 +8,15 @@ if(!isset($_POST['id'])){
 }
 
 $id = intval($_POST['id']);
+if ($id <= 0) {
+    header("Location: index.php");
+    exit;
+}
 
-$sql = "SELECT * FROM produtos WHERE id = $id AND ativo = 1";
-$result = $conn->query($sql);
+$stmt = $conn->prepare("SELECT * FROM produtos WHERE id = ? AND ativo = 1");
+$stmt->bind_param('i', $id);
+$stmt->execute();
+$result = $stmt->get_result();
 
 if($result->num_rows == 0){
     header("Location: index.php");
@@ -35,15 +41,14 @@ foreach($_SESSION['carrinho'] as &$item){
 
 if(!$existe){
     $_SESSION['carrinho'][] = [
-        "id" => $produto['id'],
+        "id" => (int)$produto['id'],
         "nome" => $produto['nome'],
-        "preco" => $produto['preco'],
+        "preco" => (float)$produto['preco'],
         "imagem" => $produto['imagem'],
         "qtd" => 1
     ];
 }
 
-/* volta para a página anterior */
-header("Location: " . $_SERVER['HTTP_REFERER']);
+$referer = $_SERVER['HTTP_REFERER'] ?? 'index.php';
+header("Location: " . $referer);
 exit;
-?>
