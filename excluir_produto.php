@@ -1,40 +1,27 @@
 <?php
+require_once(__DIR__ . "/security.php");
+require_auth();
+require_once(__DIR__ . "/conexao.php");
 
-require_once("../config/conexao.php");
-
-if(!isset($_GET['id'])){
+$id = (int)($_GET['id'] ?? 0);
+if ($id <= 0) {
     header("Location: produtos.php");
     exit;
 }
 
-$id = intval($_GET['id']);
-
-/* BUSCA IMAGEM DO PRODUTO */
-
-$sql = "SELECT imagem FROM produtos WHERE id = $id";
-$result = $conn->query($sql);
-
-if($result->num_rows > 0){
-
-    $produto = $result->fetch_assoc();
+$stmt = $conn->prepare("SELECT imagem FROM produtos WHERE id = ?");
+$stmt->bind_param('i', $id);
+$stmt->execute();
+if ($produto = $stmt->get_result()->fetch_assoc()) {
     $imagem = $produto['imagem'];
-
-    /* REMOVE IMAGEM */
-
-    if(!empty($imagem) && file_exists("../assets/images/".$imagem)){
-        unlink("../assets/images/".$imagem);
+    if (!empty($imagem) && file_exists(__DIR__ . '/assets/images/' . $imagem)) {
+        @unlink(__DIR__ . '/assets/images/' . $imagem);
     }
-
 }
 
-/* EXCLUI DO BANCO */
-
-$sql_delete = "DELETE FROM produtos WHERE id = $id";
-$conn->query($sql_delete);
-
-
-/* REDIRECIONA */
+$del = $conn->prepare("DELETE FROM produtos WHERE id = ?");
+$del->bind_param('i', $id);
+$del->execute();
 
 header("Location: produtos.php");
-
-?>
+exit;

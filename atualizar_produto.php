@@ -1,65 +1,42 @@
 <?php
+require_once(__DIR__ . "/security.php");
+require_auth();
+require_once(__DIR__ . "/conexao.php");
 
-require_once("../config/conexao.php");
+$id        = (int)($_POST['id'] ?? 0);
+$nome      = trim($_POST['nome'] ?? '');
+$categoria = trim($_POST['categoria'] ?? '');
+$marca     = trim($_POST['marca'] ?? '');
+$descricao = trim($_POST['descricao'] ?? '');
+$preco     = (float)($_POST['preco'] ?? 0);
+$estoque   = (int)($_POST['estoque'] ?? 0);
+$ativo     = (int)($_POST['ativo'] ?? 1);
 
-$id = $_POST['id'];
-
-$nome = $_POST['nome'];
-$categoria = $_POST['categoria'];
-$marca = $_POST['marca'];
-$descricao = $_POST['descricao'];
-$preco = $_POST['preco'];
-$estoque = $_POST['estoque'];
-$ativo = $_POST['ativo'];
-
-
-/* BUSCA IMAGEM ATUAL */
-
-$sql = "SELECT imagem FROM produtos WHERE id = $id";
-$result = $conn->query($sql);
-$produto = $result->fetch_assoc();
-
-$imagem = $produto['imagem'];
-
-
-/* NOVA IMAGEM */
-
-if(isset($_FILES['imagem']) && $_FILES['imagem']['name'] != ""){
-
-$ext = pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION);
-
-$novo_nome = uniqid().".".$ext;
-
-$tmp = $_FILES['imagem']['tmp_name'];
-
-move_uploaded_file($tmp,"../assets/images/".$novo_nome);
-
-if(!empty($imagem) && file_exists("../assets/images/".$imagem)){
-unlink("../assets/images/".$imagem);
+if ($id <= 0 || $nome === '') {
+    exit('Dados inválidos.');
 }
 
-$imagem = $novo_nome;
+$stmtSel = $conn->prepare("SELECT imagem FROM produtos WHERE id = ?");
+$stmtSel->bind_param('i', $id);
+$stmtSel->execute();
+$produto = $stmtSel->get_result()->fetch_assoc();
+$imagem = $produto['imagem'] ?? '';
 
+if (isset($_FILES['imagem']) && !empty($_FILES['imagem']['name'])) {
+    $novaImagem = validate_image_upload($_FILES['imagem'], __DIR__ . '/assets/images');
+    if ($novaImagem) {
+        if (!empty($imagem) && file_exists(__DIR__ . '/assets/images/' . $imagem)) {
+            @unlink(__DIR__ . '/assets/images/' . $imagem);
+        }
+        $imagem = $novaImagem;
+    }
 }
 
-
-/* UPDATE */
-
-$sql = "UPDATE produtos SET
-
-nome='$nome',
-categoria='$categoria',
-marca='$marca',
-descricao='$descricao',
-preco='$preco',
-estoque='$estoque',
-imagem='$imagem',
-ativo='$ativo'
-
-WHERE id=$id";
-
-$conn->query($sql);
+$stmtUpd = $conn->prepare(
+    "UPDATE produtos SET nome=?, categoria=?, marca=?, descricao=?, preco=?, estoque=?, imagem=?, ativo=? WHERE id=?"
+);
+$stmtUpd->bind_param('ssssdisii', $nome, $categoria, $marca, $descricao, $preco, $estoque, $imagem, $ativo, $id);
+$stmtUpd->execute();
 
 header("Location: produtos.php");
-
-?>
+exit;

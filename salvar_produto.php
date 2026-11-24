@@ -1,53 +1,32 @@
 <?php
+require_once(__DIR__ . "/security.php");
+require_auth();
+require_once(__DIR__ . "/conexao.php");
 
-require_once("../config/conexao.php");
+$nome       = trim($_POST['nome'] ?? '');
+$categoria  = trim($_POST['categoria'] ?? '');
+$marca      = trim($_POST['marca'] ?? '');
+$descricao  = trim($_POST['descricao'] ?? '');
+$preco      = (float)($_POST['preco'] ?? 0);
+$estoque    = (int)($_POST['estoque'] ?? 0);
+$ativo      = (int)($_POST['ativo'] ?? 1);
+$fornecedor = trim($_POST['fornecedor'] ?? '');
 
-$nome = $_POST['nome'];
-$categoria = $_POST['categoria'];
-$marca = $_POST['marca'];
-$descricao = $_POST['descricao'];
-$preco = $_POST['preco'];
-$estoque = $_POST['estoque'];
-$ativo = $_POST['ativo'];
-$fornecedor = $_POST['fornecedor'];
-$imagem = "";
-
-/* UPLOAD DA IMAGEM */
-
-if(isset($_FILES['imagem']) && $_FILES['imagem']['name'] != ""){
-
-    $extensao = pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION);
-
-    $novo_nome = uniqid().".".$extensao;
-
-    $tmp = $_FILES['imagem']['tmp_name'];
-
-    $destino = "../assets/images/".$novo_nome;
-
-    move_uploaded_file($tmp, $destino);
-
-    $imagem = $novo_nome;
-
+if ($nome === '' || $preco < 0 || $estoque < 0) {
+    exit('Dados inválidos para o produto.');
 }
 
+$imagem = '';
+if (isset($_FILES['imagem']) && !empty($_FILES['imagem']['name'])) {
+    $imagem = validate_image_upload($_FILES['imagem'], __DIR__ . '/assets/images') ?? '';
+}
 
-/* INSERT */
-
-$sql = "
-
-INSERT INTO produtos
-(nome, preco, categoria, marca, fornecedor, estoque, ativo, descricao, imagem)
-
-VALUES
-('$nome','$preco','$categoria','$marca','$fornecedor','$estoque','$ativo','$descricao','$imagem')
-
-";
-
-$conn->query($sql);
-
-
-/* REDIRECIONA */
+$stmt = $conn->prepare(
+    "INSERT INTO produtos (nome, preco, categoria, marca, fornecedor, estoque, ativo, descricao, imagem)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+);
+$stmt->bind_param('sdsssiiss', $nome, $preco, $categoria, $marca, $fornecedor, $estoque, $ativo, $descricao, $imagem);
+$stmt->execute();
 
 header("Location: produtos.php");
-
-?>
+exit;

@@ -1,15 +1,16 @@
 <?php
+require_once(__DIR__ . "/security.php");
+require_auth();
+require_once(__DIR__ . "/conexao.php");
 
-require_once("../config/conexao.php");
-
-$id = $_GET['id'];
-
-$senha = password_hash("123456", PASSWORD_DEFAULT);
-
-$sql = "UPDATE usuarios SET senha='$senha' WHERE id='$id'";
-
-$conn->query($sql);
+$id = (int)($_GET['id'] ?? 0);
+if ($id > 0) {
+    $novaSenha = bin2hex(random_bytes(6));
+    $hash = password_hash($novaSenha, PASSWORD_DEFAULT);
+    $stmt = $conn->prepare("UPDATE usuarios SET senha = ? WHERE id = ?");
+    $stmt->bind_param('si', $hash, $id);
+    $stmt->execute();
+}
 
 header("Location: usuarios.php");
-
-?>
+exit;
